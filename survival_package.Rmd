@@ -1,8 +1,8 @@
 ---
 title: "survival_package"
 author: "siliang zhang"
-date: "2015年11月1日"
-output: html_document
+date: "2015-11-1"
+output: pdf_document
 ---
 
 ## Fit a Kaplan-Meier and plot it 
@@ -14,3 +14,45 @@ plot(fit, lty = 2:3)
 legend(100, .8, c("Maintained","nonmaintained"), lty = 2:3)
 plot(fit, lty = 2:3, fun = "cumhaz")
 ```
+
+
+## Fit a cox proportional hazards model and plot it
+```{r}
+fit <- coxph(Surv(futime,fustat)~age, data = ovarian)
+plot(survfit(fit,newdata = data.frame(age=60)),xscale = 365.25,xlab = "years", ylab = "survival")
+```
+
+## use cgd data(counting process format) in coxph strata with sex
+```{r}
+library(survival)
+head(cgd)
+fit <- coxph(Surv(tstart,tstop,status)~1+strata(sex), data = cgd)
+plot(survfit(fit), lty = 2:3, xlab = "time", ylab = "Survival")
+legend("topright",legend=c("female","male"), lty = 2:3)
+
+plot(survfit(fit),fun="cumhaz", lty = 1:2, xlab = "time", ylab = "Cumhaz")
+legend("topleft",legend=c("female","male"), lty = 1:2)
+
+temp <- survfit(fit)
+time <- temp$time
+cumhaz <- temp$cumhaz
+stra=temp$strata
+
+par(mfrow=c(2,1),mar=c(4,4,2,2))
+
+f=splinefun(time[1:stra[1]],cumhaz[1:stra[1]],method = "monoH.FC")
+plot(time[1:stra[1]],cumhaz[1:stra[1]])
+curve(f,add = T,col="blue")
+curve(f(x,deriv = 1),time[1],time[stra[1]], col="red")
+
+f=splinefun(time[(stra[1]+1):sum(stra)],cumhaz[(stra[1]+1):sum(stra)],method = "monoH.FC")
+plot(time[(stra[1]+1):sum(stra)],cumhaz[(stra[1]+1):sum(stra)])
+time[(stra[1]+1):sum(stra)]
+curve(f(x,deriv = 1),time[stra[1]+1],time[sum(stra)], col="red")
+# res=data.frame(x=time[(stra[2]+1):sum(stra)],y=c(0,diff(cumhaz[(stra[2]+1):sum(stra)])))
+# plot(predict(loess(y~x,res),data.frame(x=seq(time[stra[2]+1]:time[sum(stra)]))),pch=20,col="blue",cex=.2)
+# plot(res)
+
+```
+
+
