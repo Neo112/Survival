@@ -1,0 +1,16 @@
+---
+title: "survival_package"
+author: "siliang zhang"
+date: "2015年11月1日"
+output: html_document
+---
+
+## Fit a Kaplan-Meier and plot it 
+```{r}
+library(survival)
+fit <- survfit(Surv(time,status)~x, data=aml)
+aml
+plot(fit, lty = 2:3)
+legend(100, .8, c("Maintained","nonmaintained"), lty = 2:3)
+plot(fit, lty = 2:3, fun = "cumhaz")
+```
