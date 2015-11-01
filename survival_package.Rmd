@@ -2,7 +2,7 @@
 title: "survival_package"
 author: "siliang zhang"
 date: "2015-11-1"
-output: pdf_document
+output: html_document
 ---
 
 ## Fit a Kaplan-Meier and plot it 
@@ -38,8 +38,6 @@ time <- temp$time
 cumhaz <- temp$cumhaz
 stra=temp$strata
 
-par(mfrow=c(2,1),mar=c(4,4,2,2))
-
 f=splinefun(time[1:stra[1]],cumhaz[1:stra[1]],method = "monoH.FC")
 plot(time[1:stra[1]],cumhaz[1:stra[1]])
 curve(f,add = T,col="blue")
@@ -48,6 +46,7 @@ curve(f(x,deriv = 1),time[1],time[stra[1]], col="red")
 f=splinefun(time[(stra[1]+1):sum(stra)],cumhaz[(stra[1]+1):sum(stra)],method = "monoH.FC")
 plot(time[(stra[1]+1):sum(stra)],cumhaz[(stra[1]+1):sum(stra)])
 time[(stra[1]+1):sum(stra)]
+curve(f,add = T,col="blue")
 curve(f(x,deriv = 1),time[stra[1]+1],time[sum(stra)], col="red")
 # res=data.frame(x=time[(stra[2]+1):sum(stra)],y=c(0,diff(cumhaz[(stra[2]+1):sum(stra)])))
 # plot(predict(loess(y~x,res),data.frame(x=seq(time[stra[2]+1]:time[sum(stra)]))),pch=20,col="blue",cex=.2)
