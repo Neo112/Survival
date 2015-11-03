@@ -3,6 +3,9 @@
 library(data.table)
 library(survival)
 
+
+# data pre-manipulation ----------------------------
+
 # dt <- fread("SalesDetails.csv",integer64 = "numeric",stringsAsFactors = FALSE, data.table = TRUE)
 dtt <- fread("MemberDetails.csv",integer64 = "numeric",stringsAsFactors = FALSE, data.table = TRUE)
 #names(dt)
@@ -21,14 +24,23 @@ start <- start[-length(start)]
 mdtt <- mdtt[,start := start]
 mdtt <- mdtt[,.(id_n, start, stop=time, status)]
 mdtt <- mdtt[stop !=0 & start != stop]
+# -----------------------------------------
 
-mdtt[,.N, by = id_n][order(-N)]
+# descriptive statistics-------------------
+test1 <- mdtt[,.N,by=id_n]
+dim(test1)
+barplot(test1$N[order(test1$N,decreasing = T)], names.arg = test1$id_n[order(test1$N,decreasing = T)])
+
+
+mdtt[,.N, by = id_n][order(-N)]  # check buytime with id_n
 test1 <- mdtt[,z_buy:=1*(.N>3),by=id_n]
 sfit <- coxph(Surv(start,stop,status)~1+strata(z_buy), data=test1)
 # sfit1 <- survfit(Surv(start,stop,status)~1+strata(id_n),data=test1, type='fleming')
 plot(survfit(sfit), lty=1:2,fun="cumhaz", xlab = "time", ylab = "Cumhaz")
 legend("topleft",legend=c("buy_time<=3","buy_time>3"), lty = 1:2)
-
+sfit2 <- coxph(Surv(start,stop,status)~z_buy, data = test1)
+summary(sfit2)
+#plot(survfit(sfit2,newdata=data.frame(z_buy=1)),fun="cumhaz", xlab = "time", ylab = "Cumhaz")
 
 temp <- survfit(sfit)
 time <- temp$time
