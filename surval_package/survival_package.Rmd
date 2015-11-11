@@ -51,7 +51,22 @@ curve(f(x,deriv = 1),time[stra[1]+1],time[sum(stra)], col="red")
 # res=data.frame(x=time[(stra[2]+1):sum(stra)],y=c(0,diff(cumhaz[(stra[2]+1):sum(stra)])))
 # plot(predict(loess(y~x,res),data.frame(x=seq(time[stra[2]+1]:time[sum(stra)]))),pch=20,col="blue",cex=.2)
 # plot(res)
+```
 
+## UCLA survival analysis tutorial:using textbook Applied Survival Analysis
+```{r}
+hmohiv<-read.table("http://www.ats.ucla.edu/stat/r/examples/asa/hmohiv.csv", sep=",", header = TRUE)
+attach(hmohiv)
+hmohiv
+```
+
+## relationship of censorship with age & time
+```{r}
+table(censor)
+plot(age, time, pch=(censor+1), cex=.5)
+legend("topright", legend = c("censor = 0","censor = 1"), pch = c(1,2))
+plot(1000/age, time, pch=(censor+1))
+legend(40,30, legend = c("censored","failured"), pch = c(1,2))
 ```
 
 

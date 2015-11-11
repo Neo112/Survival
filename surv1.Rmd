@@ -34,17 +34,21 @@ mdtt <- mdtt[stop !=0 & start != stop]
 # -----------------------------------------
 
 # descriptive statistics-------------------
+library(ggplot2)
 test1 <- mdtt[,.N,by=id_n]
 dim(test1)
 # 1132 id, 323 days
-barplot(test1$N[order(test1$N,decreasing = T)], names.arg = test1$id_n[order(test1$N,decreasing = T)])
+barplot(test1$N[order(test1$N,decreasing = T)], names.arg = test1$id_n[order(test1$N,decreasing = T)], xlab = "id_n(sorted)", ylab = "buy-times")
+
+test1 <- mdtt[,z_buy:=1*(.N>3),by=id_n]
+plot(test1[,stop-start],test1[,z_buy],pch=(test1[,status]+1), ylim = c(-0.5,1.5), cex=.5)
 ```
 
 
 ## cox-proportional hazard model using z_buy variable
 ```{r}
 mdtt[,.N, by = id_n][order(-N)]  # check buytime with id_n
-test1 <- mdtt[,z_buy:=1*(.N>3),by=id_n]
+
 sfit <- coxph(Surv(start,stop,status)~1+strata(z_buy), data=test1)
 # sfit1 <- survfit(Surv(start,stop,status)~1+strata(id_n),data=test1, type='fleming')
 plot(survfit(sfit), lty=1:2,fun="cumhaz", xlab = "time", ylab = "Cumhaz")
@@ -81,11 +85,18 @@ f2=splinefun(time[(stra[1]+1):sum(stra)],cumhaz[(stra[1]+1):sum(stra)],method = 
 plot(time[(stra[1]+1):sum(stra)],cumhaz[(stra[1]+1):sum(stra)])
 time[(stra[1]+1):sum(stra)]
 curve(f2,add = T,col="blue")
+curve(f2(x,deriv = 1),add=T,time[stra[1]+1],time[sum(stra)], col="red")
 
-
-curve(f2(x,deriv = 1),time[stra[1]+1],time[sum(stra)], col="blue")
-curve(f1(x,deriv = 1),time[1],time[stra[1]], col="red", add=T)
+curve(f2(x,deriv = 1),time[stra[1]+1],time[sum(stra)], lty=2)
+curve(f1(x,deriv = 1),time[1],time[stra[1]], lty=1, add=T)
+legend("topright", legend = c("buy_time>3","buy_time<=3"), lty = c(2,1))
 ```
 
-# test
+# test 2 set buy_time as an integer
+```{r}
+test2 <- mdtt[,z_buy2:=.N,by=id_n]
+sfit2 <- coxph(Surv(start,stop,status)~pspline(z_buy2), data = test2)
+summary(sfit2)
+plot(test2$z_buy2, predict(sfit2), xlab='buy_time', ylab="Spline prediction(log hazard)")
 
+```
