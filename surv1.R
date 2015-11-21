@@ -4,7 +4,7 @@ library(data.table)
 library(survival)
 library(ggplot2)
 
-# data pre-manipulation ----------------------------
+# data pre-manipulation ----------------------------------------------
 
 # dt <- fread("SalesDetails.csv",integer64 = "numeric",stringsAsFactors = FALSE, data.table = TRUE)
 dtt <- fread("MemberDetails.csv",integer64 = "numeric",stringsAsFactors = FALSE, data.table = TRUE)
@@ -26,7 +26,7 @@ mdtt <- mdtt[,.(id_n, start, stop=time, status)]
 mdtt <- mdtt[stop !=0 & start != stop]
 # -----------------------------------------
 
-# descriptive statistics-------------------
+# descriptive statistics-----------------------------------------
 test1 <- mdtt[,.N,by=id_n]
 dim(test1)
 qplot(test1$N, geom = "histogram", binwidth = 1, xlab = "buytimes", ylab = "count")
@@ -43,34 +43,43 @@ test1 <- copy(mdtt)
 test1 <- test1[,z_buy1m:=f(stop), by=id_n]#[,z_buy1m:= z_buy1m>=1]
 
 
-#test1 <- mdtt[,z_buy:=1*(.N>3),by=id_n]
-sfit <- coxph(Surv(start,stop,status)~1+strata(z_buy1m), data=test1)
-# sfit1 <- survfit(Surv(start,stop,status)~1+strata(id_n),data=test1, type='fleming')
-plot(survfit(sfit),lty=1:2, fun="cumhaz", xlab = "time", ylab = "Cumhaz")
-legend("topleft",legend=c("1m_buy_time<1","buy_time>=1"), lty = 1:2)
-plot(survfit(sfit), lty=1:2, xlab = "time", ylab = "survival")
-legend("topright",legend=c("1m_buy_time<1","buy_time>=1"), lty = 1:2)
+# cox-proportional hazard model using z_buy variable------------------------
 
-id_buytimes <- mdtt[, .N, by = id_n] 
-# > sum(id_buytimes[,N]==2)
-# [1] 485
-test11 <- test1[id_n %in% id_buytimes[N==2,id_n]]
-test12 <- test1[!(id_n %in% id_buytimes[N==2,id_n])]
-sfit2 <- coxph(Surv(start,stop,status) ~ z_buy1m, data = test1, singular.ok = T)
+# sfit <- coxph(Surv(start,stop,status)~1+strata(z_buy), data=test1)
+# plot(survfit(sfit), lty=1:2,fun="cumhaz", xlab = "time", ylab = "Cumhaz")
+# legend("topleft",legend=c("buy_time<=3","buy_time>3"), lty = 1:2)
+# plot(survfit(sfit), lty=1:2, xlab = "time", ylab = "survival")
+# legend("topright",legend=c("buy_time<=3","buy_time>3"), lty = 1:2)
+
+sfit2 <- coxph(Surv(start,stop,status)~z_buy, data = test1)
 summary(sfit2)
+quantile(test$N)
+plot(survfit(sfit2, newdata=data.frame(z_buy=0)), 
+     xlab = "days", ylab = "Survival", col = "black") 
+lines(survfit(sfit2, newdata=data.frame(z_buy=1)),
+      add=T, xlab = "days", ylab = "Survival", col = "blue") 
+legend("topright",legend=c("z_buy(2 month) = 0","z_buy(2 month) = 1"), 
+       lty=1,col = c("black","blue"))
+
+plot(survfit(sfit2, newdata=data.frame(z_buy=1)), fun="cumhaz",
+     xlab = "days", ylab = "Cumhaz", col = "blue") 
+lines(survfit(sfit2, newdata=data.frame(z_buy=0)),fun="cumhaz",
+      add=T, col = "black") 
+legend("topleft",legend=c("z_buy(2 month) = 0","z_buy(2 month) = 1"), 
+       lty=1,col = c("black","blue"))
 #plot(survfit(sfit2,newdata=data.frame(z_buy=1)),fun="cumhaz", xlab = "time", ylab = "Cumhaz")
 
-temp <- survfit(sfit)
-time <- temp$time
-cumhaz <- temp$cumhaz
-stra=temp$strata
+# smoothing --------------------------------------------------------
+temp0 <- survfit(sfit2, newdata=data.frame(z_buy=0))
+temp1 <- survfit(sfit2, newdata=data.frame(z_buy=1))
 
-# first smoothing ------------------------------------
-smoothingSpline = smooth.spline(time[(stra[1]+1):sum(stra)],cumhaz[(stra[1]+1):sum(stra)], spar=0.3)
-plot(smoothingSpline$x,c(0,diff(smoothingSpline$y)),"l",lty=2)
-smoothingSpline = smooth.spline(time[1:stra[1]],cumhaz[1:stra[1]], spar=0.35)
-lines(smoothingSpline$x,c(0,diff(smoothingSpline$y)),"l",add = T,lty=1)
-legend("topleft",legend=c("buy_time>3","buy_time<=3"), lty = c(2,1))
+# first smoothing --------------------------------------------------
+smoothingSpline0 = smooth.spline(temp0$time, temp0$cumhaz, spar=0.3)
+smoothingSpline1 = smooth.spline(temp1$time, temp1$cumhaz, spar=0.3)
+
+plot(smoothingSpline1$x,c(0,diff(smoothingSpline1$y)),"l",lty=1)
+lines(smoothingSpline0$x,c(0,diff(smoothingSpline0$y)),"l",lty=2, add = T)
+legend("topright",legend=c("z_buy(2 month) = 0","z_buy(2 month) = 1"), lty=c(2,1))
 
 # second smoothing ------------------------------------
 f1=splinefun(time[1:stra[1]],cumhaz[1:stra[1]],method = "monoH.FC")
