@@ -2,7 +2,7 @@
 setwd("~/11/yangshan")
 library(data.table)
 library(survival)
-
+library(ggplot2)
 
 # data pre-manipulation ----------------------------
 
@@ -29,17 +29,18 @@ mdtt <- mdtt[stop !=0 & start != stop]
 # descriptive statistics-------------------
 test1 <- mdtt[,.N,by=id_n]
 dim(test1)
+qplot(test1$N, geom = "histogram", binwidth = 1, xlab = "buytimes", ylab = "count")
 ## plot a histogram
 
 f <- function(stop){
   z <- rep(NA, length(stop))
   for(i in 1:length(stop)){
-    z[i] <- sum(stop[1:i]>(stop[i]-30))-1
+    z[i] <- sum(stop[1:i]>(stop[i]-60))-1
   }
   return(z)
 }
 test1 <- copy(mdtt)
-test1 <- test1[,z_buy1m:=f(stop), by=id_n][,z_buy1m:= z_buy1m>=1]
+test1 <- test1[,z_buy1m:=f(stop), by=id_n]#[,z_buy1m:= z_buy1m>=1]
 
 
 #test1 <- mdtt[,z_buy:=1*(.N>3),by=id_n]
@@ -49,7 +50,13 @@ plot(survfit(sfit),lty=1:2, fun="cumhaz", xlab = "time", ylab = "Cumhaz")
 legend("topleft",legend=c("1m_buy_time<1","buy_time>=1"), lty = 1:2)
 plot(survfit(sfit), lty=1:2, xlab = "time", ylab = "survival")
 legend("topright",legend=c("1m_buy_time<1","buy_time>=1"), lty = 1:2)
-sfit2 <- coxph(Surv(start,stop,status) ~ z_buy1m, data = test1)
+
+id_buytimes <- mdtt[, .N, by = id_n] 
+# > sum(id_buytimes[,N]==2)
+# [1] 485
+test11 <- test1[id_n %in% id_buytimes[N==2,id_n]]
+test12 <- test1[!(id_n %in% id_buytimes[N==2,id_n])]
+sfit2 <- coxph(Surv(start,stop,status) ~ z_buy1m, data = test1, singular.ok = T)
 summary(sfit2)
 #plot(survfit(sfit2,newdata=data.frame(z_buy=1)),fun="cumhaz", xlab = "time", ylab = "Cumhaz")
 

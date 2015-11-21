@@ -40,7 +40,15 @@ dim(test1)
 # 1132 id, 323 days
 barplot(test1$N[order(test1$N,decreasing = T)], names.arg = test1$id_n[order(test1$N,decreasing = T)], xlab = "id_n(sorted)", ylab = "buy-times")
 
-test1 <- mdtt[,z_buy:=1*(.N>3),by=id_n]
+f <- function(stop){
+  z <- rep(NA, length(stop))
+  for(i in 1:length(stop)){
+    z[i] <- sum(stop[1:i]>(stop[i]-30))-1
+  }
+  return(z)
+}
+test1 <- copy(mdtt)
+test1 <- test1[,z_buy1m:=f(stop), by=id_n][,z_buy1m:= z_buy1m>=1]
 plot(test1[,stop-start],test1[,z_buy],pch=(test1[,status]+1), ylim = c(-0.5,1.5), cex=.5)
 ```
 
